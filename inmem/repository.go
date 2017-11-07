@@ -1,24 +1,24 @@
 package inmem
 
 import (
-	. "github.com/nirasan/go-repository-base"
 	"errors"
-	"reflect"
 	"fmt"
+	. "github.com/nirasan/go-repository-base"
+	"reflect"
 )
 
 type InmemRepository struct {
-	data map[int64]Entity
-	id int64
-	entity Entity
+	data     map[int64]Entity
+	id       int64
+	entity   Entity
 	typeName string
 }
 
 func NewInmemRepository(e Entity) *InmemRepository {
 	return &InmemRepository{
-		data: make(map[int64]Entity),
-		id: 1,
-		entity: e,
+		data:     make(map[int64]Entity),
+		id:       1,
+		entity:   e,
 		typeName: reflect.TypeOf(e).String(),
 	}
 }

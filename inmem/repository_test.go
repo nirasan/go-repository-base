@@ -5,7 +5,7 @@ import (
 )
 
 type myStruct struct {
-	ID int64
+	ID   int64
 	Name string
 }
 
@@ -97,7 +97,7 @@ func TestInmemRepository_Update(t *testing.T) {
 		t.Error(err)
 	}
 
-	e2 := &myStruct{ID:e1.ID}
+	e2 := &myStruct{ID: e1.ID}
 	r.Find(e2)
 	if e2.Name != newName {
 		t.Errorf("failed to update: %+v", e2)
@@ -115,7 +115,7 @@ func TestInmemRepository_Delete(t *testing.T) {
 		t.Error(err)
 	}
 
-	e2 := &myStruct{ID:e1.ID}
+	e2 := &myStruct{ID: e1.ID}
 	if err := r.Find(e2); err == nil {
 		t.Error("failed to delete: %+v, %+v", e2, err)
 	}
