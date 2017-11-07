@@ -6,14 +6,8 @@ import (
 	"fmt"
 	"google.golang.org/appengine/datastore"
 	"reflect"
+	. "github.com/nirasan/go-repository-base"
 )
-
-type Entity interface {
-	GetID() int64
-	SetID(int64)
-}
-
-var EntityType = reflect.TypeOf((*Entity)(nil)).Elem()
 
 type DatastoreRepository struct {
 	ctx      context.Context
@@ -34,7 +28,7 @@ func NewDatastoreRepository(ctx context.Context, e Entity) (*DatastoreRepository
 	return r, nil
 }
 
-// Find one entity
+// Find one Entity
 func (r *DatastoreRepository) Find(e Entity) error {
 	if err := r.ValidateEntity(e); err != nil {
 		return err
