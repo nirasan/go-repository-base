@@ -2,64 +2,187 @@ package datastore
 
 import (
 	"google.golang.org/appengine/aetest"
+	"google.golang.org/appengine/datastore"
 	"testing"
 )
 
-type MyStruct struct {
+type myStruct struct {
 	ID   int64
 	Name string
 }
 
-func (s *MyStruct) GetID() int64 {
+func (s *myStruct) GetID() int64 {
 	return s.ID
 }
 
-func TestCommonRepository(t *testing.T) {
+func (s *myStruct) SetID(id int64) {
+	s.ID = id
+}
+
+type myStruct2 struct {
+	ID   int64
+	Name string
+}
+
+func (s *myStruct2) GetID() int64 {
+	return s.ID
+}
+
+func (s *myStruct2) SetID(id int64) {
+	s.ID = id
+}
+
+func TestDatastoreRepository_ValidateEntity(t *testing.T) {
 	ctx, f, err := aetest.NewContext()
+	if err != nil {
+		t.Fatal(err)
+	}
 	defer f()
 
-	repo, err := NewDatastoreRepository(ctx, &MyStruct{})
-	t.Logf("%+v, %+v\n", repo, err)
+	r, err := NewDatastoreRepository(ctx, &myStruct{})
+	if err != nil {
+		t.Fatal()
+	}
 
-	e1 := &MyStruct{Name: "a", ID: 1}
+	e1 := &myStruct2{Name: "hello"}
+	err = r.ValidateEntity(e1)
+	if err == nil {
+		t.Error("entity must myStruct")
+	}
+	t.Log(err)
+}
 
-	if err := repo.Create(e1); err != nil {
+func TestDatastoreRepository_CreateWithID(t *testing.T) {
+	ctx, f, err := aetest.NewContext()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f()
+
+	r, err := NewDatastoreRepository(ctx, &myStruct{})
+	if err != nil {
+		t.Fatal()
+	}
+
+	e := &myStruct{Name: "bob"}
+	var id int64 = 100
+	if err := r.CreateWithID(e, id); err != nil {
 		t.Error(err)
 	}
 
-	e2 := &MyStruct{ID: 1}
-	if err := repo.Find(e2); err != nil {
+	e2 := new(myStruct)
+	if err := datastore.Get(ctx, datastore.NewKey(ctx, r.kind, "", id, nil), e2); err != nil {
 		t.Error(err)
 	}
-	if e2.Name != e1.Name {
-		t.Errorf("Failed to Find: %+v, %+v", e2, e1)
+	if e2.ID != id {
+		t.Errorf("invalid id: %+v", e2)
 	}
 
-	list := []*MyStruct{}
-	if err := repo.FindAll(&list); err != nil {
+	t.Logf("%+v", e2)
+}
+
+func TestDatastoreRepository_Create(t *testing.T) {
+	ctx, f, _ := aetest.NewContext()
+	defer f()
+
+	r, _ := NewDatastoreRepository(ctx, &myStruct{})
+
+	e := &myStruct{Name: "bob"}
+	if err := r.Create(e); err != nil {
 		t.Error(err)
-	}
-	if len(list) != 1 || list[0].ID != e1.ID {
-		for _, e := range list {
-			t.Logf("%#v", e)
-			e.GetID()
-		}
 	}
 
-	e2.Name = "b"
-	if err = repo.Update(e2); err != nil {
+	e2 := new(myStruct)
+	if err := datastore.Get(ctx, datastore.NewKey(ctx, r.kind, "", e.ID, nil), e2); err != nil {
 		t.Error(err)
 	}
-	e3 := &MyStruct{ID: 1}
-	if err := repo.Find(e3); err != nil || e3.Name != e2.Name {
-		t.Errorf("Failed to Update: %+v, %+v, %+v", err, e3, e2)
+	if e2.Name != e.Name {
+		t.Errorf("invalid name: %+v", e2)
+	}
+	t.Logf("%+v", e2)
+}
+
+func TestDatastoreRepository_Find(t *testing.T) {
+	ctx, f, _ := aetest.NewContext()
+	defer f()
+
+	r, _ := NewDatastoreRepository(ctx, &myStruct{})
+
+	e := &myStruct{Name: "bob"}
+	r.Create(e)
+
+	e2 := &myStruct{ID: e.ID}
+	if err := r.Find(e2); err != nil {
+		t.Error(err)
+	}
+	if e2.Name != e.Name {
+		t.Errorf("invalid name: %+v", e2)
+	}
+	t.Logf("%+v", e2)
+}
+
+func TestDatastoreRepository_FindAll(t *testing.T) {
+	ctx, f, _ := aetest.NewContext()
+	defer f()
+
+	r, _ := NewDatastoreRepository(ctx, &myStruct{})
+
+	r.Create(&myStruct{Name: "alice"})
+	r.Create(&myStruct{Name: "bob"})
+
+	list := []*myStruct{}
+	if err := r.FindAll(&list); err != nil {
+		t.Error(err)
+	}
+	if len(list) != 2 {
+		t.Errorf("invalid length: %+v", list)
+	}
+	for _, e := range list {
+		t.Logf("%+v", e)
+	}
+}
+
+func TestDatastoreRepository_Update(t *testing.T) {
+	ctx, f, _ := aetest.NewContext()
+	defer f()
+
+	r, _ := NewDatastoreRepository(ctx, &myStruct{})
+
+	e := &myStruct{Name: "bob"}
+	r.Create(e)
+
+	newName := "bob Jr."
+	e.Name = newName
+	if err := r.Update(e); err != nil {
+		t.Error(err)
 	}
 
-	if err = repo.Delete(e2); err != nil {
+	e2 := &myStruct{ID: e.ID}
+	if err := r.Find(e2); err != nil {
 		t.Error(err)
 	}
-	e4 := &MyStruct{ID: 1}
-	if err := repo.Find(e4); err == nil {
-		t.Errorf("Failed to Delete: %+v, %+v", err, e4)
+	if e2.Name != newName {
+		t.Errorf("invalid name: %+v", e2)
 	}
+	t.Logf("%+v", e2)
+}
+
+func TestDatastoreRepository_Delete(t *testing.T) {
+	ctx, f, _ := aetest.NewContext()
+	defer f()
+
+	r, _ := NewDatastoreRepository(ctx, &myStruct{})
+
+	e := &myStruct{Name: "bob"}
+	r.Create(e)
+
+	if err := r.Delete(e); err != nil {
+		t.Error(err)
+	}
+
+	e2 := &myStruct{ID: e.ID}
+	if err := r.Find(e2); err == nil {
+		t.Errorf("deleted entity found: %+v", e2)
+	}
+	t.Logf("%+v", e2)
 }

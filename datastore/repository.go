@@ -10,6 +10,7 @@ import (
 
 type Entity interface {
 	GetID() int64
+	SetID(int64)
 }
 
 var EntityType = reflect.TypeOf((*Entity)(nil)).Elem()
@@ -57,6 +58,20 @@ func (r *DatastoreRepository) Create(e Entity) error {
 	if err := r.ValidateEntity(e); err != nil {
 		return err
 	}
+	key := datastore.NewIncompleteKey(r.ctx, r.kind, nil)
+	newKey, err := datastore.Put(r.ctx, key, e)
+	if err != nil {
+		return err
+	}
+	return r.CreateWithID(e, newKey.IntID())
+}
+
+// Create with id
+func (r *DatastoreRepository) CreateWithID(e Entity, id int64) error {
+	if err := r.ValidateEntity(e); err != nil {
+		return err
+	}
+	e.SetID(id)
 	_, err := datastore.Put(r.ctx, r.NewKey(e.GetID()), e)
 	return err
 }
