@@ -5,24 +5,15 @@ import (
 	"google.golang.org/appengine/datastore"
 	"testing"
 	"context"
-	"github.com/nirasan/go-repository-base"
 )
 
 type myStruct struct {
-	ID   int64
+	ID   int64 `repository:"id"`
 	Name string
 }
 
-func (s *myStruct) GetID() int64 {
-	return s.ID
-}
-
-func (s *myStruct) SetID(id int64) {
-	s.ID = id
-}
-
 func createMyStructRepository(ctx context.Context) *DatastoreRepository {
-	r, _ := NewDatastoreRepository(ctx, func() go_repository_base.Entity { return &myStruct{} }, func() interface{} { return []*myStruct{} })
+	r, _ := NewDatastoreRepository(ctx, func() interface{} { return &myStruct{} }, func() interface{} { return []*myStruct{} })
 	return r
 }
 
@@ -31,12 +22,37 @@ type myStruct2 struct {
 	Name string
 }
 
-func (s *myStruct2) GetID() int64 {
-	return s.ID
+func TestDatastoreRepository_SetID(t *testing.T) {
+	ctx, f, err := aetest.NewContext()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f()
+	r := createMyStructRepository(ctx)
+	e := &myStruct{}
+	if err := r.SetID(e, 100); err != nil {
+		t.Error(err)
+	}
+	if e.ID != 100 {
+		t.Error("invalid id: ", e.ID)
+	}
 }
 
-func (s *myStruct2) SetID(id int64) {
-	s.ID = id
+func TestDatastoreRepository_GetID(t *testing.T) {
+	ctx, f, err := aetest.NewContext()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f()
+	r := createMyStructRepository(ctx)
+	e := &myStruct{ID: 999}
+	id, err := r.GetID(e)
+	if err != nil {
+		t.Error(err)
+	}
+	if id != 999 {
+		t.Error("invalid id: ", id)
+	}
 }
 
 func TestDatastoreRepository_ValidateEntity(t *testing.T) {
