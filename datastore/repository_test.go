@@ -4,6 +4,8 @@ import (
 	"google.golang.org/appengine/aetest"
 	"google.golang.org/appengine/datastore"
 	"testing"
+	"context"
+	"github.com/nirasan/go-repository-base"
 )
 
 type myStruct struct {
@@ -17,6 +19,11 @@ func (s *myStruct) GetID() int64 {
 
 func (s *myStruct) SetID(id int64) {
 	s.ID = id
+}
+
+func createMyStructRepository(ctx context.Context) *DatastoreRepository {
+	r, _ := NewDatastoreRepository(ctx, func() go_repository_base.Entity { return &myStruct{} }, func() interface{} { return []*myStruct{} })
+	return r
 }
 
 type myStruct2 struct {
@@ -39,10 +46,7 @@ func TestDatastoreRepository_ValidateEntity(t *testing.T) {
 	}
 	defer f()
 
-	r, err := NewDatastoreRepository(ctx, &myStruct{})
-	if err != nil {
-		t.Fatal()
-	}
+	r := createMyStructRepository(ctx)
 
 	e1 := &myStruct2{Name: "hello"}
 	err = r.ValidateEntity(e1)
@@ -59,10 +63,7 @@ func TestDatastoreRepository_CreateWithID(t *testing.T) {
 	}
 	defer f()
 
-	r, err := NewDatastoreRepository(ctx, &myStruct{})
-	if err != nil {
-		t.Fatal()
-	}
+	r := createMyStructRepository(ctx)
 
 	e := &myStruct{Name: "bob"}
 	var id int64 = 100
@@ -85,7 +86,7 @@ func TestDatastoreRepository_Create(t *testing.T) {
 	ctx, f, _ := aetest.NewContext()
 	defer f()
 
-	r, _ := NewDatastoreRepository(ctx, &myStruct{})
+	r := createMyStructRepository(ctx)
 
 	e := &myStruct{Name: "bob"}
 	if err := r.Create(e); err != nil {
@@ -106,15 +107,16 @@ func TestDatastoreRepository_Find(t *testing.T) {
 	ctx, f, _ := aetest.NewContext()
 	defer f()
 
-	r, _ := NewDatastoreRepository(ctx, &myStruct{})
+	r := createMyStructRepository(ctx)
 
 	e := &myStruct{Name: "bob"}
 	r.Create(e)
 
-	e2 := &myStruct{ID: e.ID}
-	if err := r.Find(e2); err != nil {
+	ie, err := r.Find(e.ID)
+	if err != nil {
 		t.Error(err)
 	}
+	e2 := ie.(*myStruct)
 	if e2.Name != e.Name {
 		t.Errorf("invalid name: %+v", e2)
 	}
@@ -125,16 +127,45 @@ func TestDatastoreRepository_FindAll(t *testing.T) {
 	ctx, f, _ := aetest.NewContext()
 	defer f()
 
-	r, _ := NewDatastoreRepository(ctx, &myStruct{})
+	r := createMyStructRepository(ctx)
 
 	r.Create(&myStruct{Name: "alice"})
 	r.Create(&myStruct{Name: "bob"})
 
-	list := []*myStruct{}
-	if err := r.FindAll(&list); err != nil {
+	ret, err := r.FindAll()
+	if err != nil {
 		t.Error(err)
 	}
+	list := ret.([]*myStruct)
 	if len(list) != 2 {
+		t.Errorf("invalid length: %+v", list)
+	}
+	for _, e := range list {
+		t.Logf("%+v", e)
+	}
+}
+
+func TestDatastoreRepository_FindByQuery(t *testing.T) {
+	ctx, f, _ := aetest.NewContext()
+	defer f()
+
+	r := createMyStructRepository(ctx)
+
+	ee1 := &myStruct{Name: "alice"}
+	ee2 := &myStruct{Name: "bob"}
+	ee3 := &myStruct{Name: "carol"}
+	r.Create(ee1)
+	r.Create(ee2)
+	r.Create(ee3)
+
+	ret, err := r.FindByQuery(datastore.NewQuery(r.kind))
+	if err != nil {
+		t.Error(err)
+	}
+	t.Logf("%+v", ret)
+	list := ret.([]*myStruct)
+	t.Logf("%+v", list)
+	if len(list) != 3 {
 		t.Errorf("invalid length: %+v", list)
 	}
 	for _, e := range list {
@@ -146,7 +177,7 @@ func TestDatastoreRepository_Update(t *testing.T) {
 	ctx, f, _ := aetest.NewContext()
 	defer f()
 
-	r, _ := NewDatastoreRepository(ctx, &myStruct{})
+	r := createMyStructRepository(ctx)
 
 	e := &myStruct{Name: "bob"}
 	r.Create(e)
@@ -157,10 +188,11 @@ func TestDatastoreRepository_Update(t *testing.T) {
 		t.Error(err)
 	}
 
-	e2 := &myStruct{ID: e.ID}
-	if err := r.Find(e2); err != nil {
+	ie, err := r.Find(e.ID)
+	if err != nil {
 		t.Error(err)
 	}
+	e2 := ie.(*myStruct)
 	if e2.Name != newName {
 		t.Errorf("invalid name: %+v", e2)
 	}
@@ -171,7 +203,7 @@ func TestDatastoreRepository_Delete(t *testing.T) {
 	ctx, f, _ := aetest.NewContext()
 	defer f()
 
-	r, _ := NewDatastoreRepository(ctx, &myStruct{})
+	r := createMyStructRepository(ctx)
 
 	e := &myStruct{Name: "bob"}
 	r.Create(e)
@@ -180,9 +212,10 @@ func TestDatastoreRepository_Delete(t *testing.T) {
 		t.Error(err)
 	}
 
-	e2 := &myStruct{ID: e.ID}
-	if err := r.Find(e2); err == nil {
-		t.Errorf("deleted entity found: %+v", e2)
+	ie, err := r.Find(e.ID)
+	if err == nil {
+		t.Errorf("deleted entity found: %+v", ie)
 	}
+	e2 := ie.(*myStruct)
 	t.Logf("%+v", e2)
 }
