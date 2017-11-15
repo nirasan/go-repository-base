@@ -3,56 +3,83 @@ package inmem
 import (
 	"errors"
 	"fmt"
-	. "github.com/nirasan/go-repository-base"
 	"reflect"
 )
 
+const tagKey = "repository"
+
 type InmemRepository struct {
-	data     map[int64]Entity
+	data     map[int64]interface{}
 	id       int64
-	entity   Entity
+	entity   interface{}
 	typeName string
 }
 
-func NewInmemRepository(e Entity) *InmemRepository {
+func NewInmemRepository(e interface{}) *InmemRepository {
 	return &InmemRepository{
-		data:     make(map[int64]Entity),
+		data:     make(map[int64]interface{}),
 		id:       1,
 		entity:   e,
 		typeName: reflect.TypeOf(e).String(),
 	}
 }
 
-func (r *InmemRepository) Find(e Entity) error {
+func (r *InmemRepository) GetIDFieldName(e interface{}) (string, error) {
 	if err := r.ValidateEntity(e); err != nil {
+		return "", err
+	}
+	rv := reflect.Indirect(reflect.ValueOf(e))
+	rt := rv.Type()
+	if rt.Kind() != reflect.Struct {
+		return "", errors.New(fmt.Sprintf("Entity must struct or pointer of struct: %+v", e))
+	}
+	for i := rt.NumField() - 1; i >= 0; i = i - 1 {
+		f := rt.Field(i)
+		if f.Type.Kind() == reflect.Int64 && f.Tag.Get(tagKey) == "id" {
+			return f.Name, nil
+		}
+	}
+	return "", errors.New("not found")
+}
+
+func (r *InmemRepository) SetID(e interface{}, id int64) error {
+	name, err := r.GetIDFieldName(e)
+	if err != nil {
 		return err
 	}
-	ee, ok := r.data[e.GetID()]
+	rv := reflect.Indirect(reflect.ValueOf(e))
+	rv.FieldByName(name).SetInt(id)
+	return nil
+}
+
+func (r *InmemRepository) GetID(e interface{}) (int64, error) {
+	name, err := r.GetIDFieldName(e)
+	if err != nil {
+		return 0, err
+	}
+	rv := reflect.Indirect(reflect.ValueOf(e))
+	return rv.FieldByName(name).Int(), nil
+}
+
+
+func (r *InmemRepository) Find(id int64) (interface{}, error) {
+	e, ok := r.data[id]
 	if !ok {
-		return errors.New("not found")
+		return nil, errors.New("not found")
 	}
-	rv := reflect.ValueOf(e)
-	rt := rv.Type()
-	if rt.Kind() != reflect.Ptr || rt.Elem().Kind() != reflect.Struct {
-		return errors.New("invalid type")
-	}
-	rv.Elem().Set(reflect.ValueOf(ee).Elem())
-	return nil
+	return e, nil
 }
 
-func (r *InmemRepository) FindAll(list interface{}) error {
-	rt := reflect.TypeOf(list)
-	if rt.Kind() != reflect.Ptr || rt.Elem().Kind() != reflect.Slice || !rt.Elem().Elem().Implements(EntityType) {
-		return errors.New(fmt.Sprintf("Invalid entity type. expected:[]%s, actual: %s", reflect.TypeOf(r.entity), rt.String()))
-	}
-	rlist := reflect.ValueOf(list).Elem()
+func (r *InmemRepository) FindAll() (interface{}, error) {
+	rt := reflect.SliceOf(reflect.TypeOf(r.entity))
+	rlist := reflect.MakeSlice(rt, 0, 0)
 	for _, e := range r.data {
-		rlist.Set(reflect.Append(rlist, reflect.ValueOf(e)))
+		rlist = reflect.Append(rlist, reflect.ValueOf(e))
 	}
-	return nil
+	return rlist.Interface(), nil
 }
 
-func (r *InmemRepository) Create(e Entity) error {
+func (r *InmemRepository) Create(e interface{}) error {
 	if err := r.ValidateEntity(e); err != nil {
 		return err
 	}
@@ -61,33 +88,35 @@ func (r *InmemRepository) Create(e Entity) error {
 	return nil
 }
 
-func (r *InmemRepository) CreateWithID(e Entity, id int64) error {
+func (r *InmemRepository) CreateWithID(e interface{}, id int64) error {
 	if err := r.ValidateEntity(e); err != nil {
 		return err
 	}
 	r.data[id] = e
-	e.SetID(r.id)
+	r.SetID(e, r.id)
 	return nil
 }
 
-func (r *InmemRepository) Update(e Entity) error {
+func (r *InmemRepository) Update(e interface{}) error {
 	if err := r.ValidateEntity(e); err != nil {
 		return err
 	}
-	r.data[e.GetID()] = e
+	id, _ := r.GetID(e)
+	r.data[id] = e
 	return nil
 }
 
-func (r *InmemRepository) Delete(e Entity) error {
+func (r *InmemRepository) Delete(e interface{}) error {
 	if err := r.ValidateEntity(e); err != nil {
 		return err
 	}
-	delete(r.data, e.GetID())
+	id, _ := r.GetID(e)
+	delete(r.data, id)
 	return nil
 }
 
 // Validation entity type
-func (r *InmemRepository) ValidateEntity(e Entity) error {
+func (r *InmemRepository) ValidateEntity(e interface{}) error {
 	rt := reflect.TypeOf(e)
 	if r.typeName != rt.String() {
 		return errors.New(fmt.Sprintf("Invalid entity type. expected:%s, actual: %s", r.typeName, rt.String()))

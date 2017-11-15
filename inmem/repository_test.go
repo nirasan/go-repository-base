@@ -5,16 +5,8 @@ import (
 )
 
 type myStruct struct {
-	ID   int64
+	ID   int64 `repository:"id"`
 	Name string
-}
-
-func (s *myStruct) GetID() int64 {
-	return s.ID
-}
-
-func (s *myStruct) SetID(id int64) {
-	s.ID = id
 }
 
 func TestInmemRepository_Find(t *testing.T) {
@@ -22,11 +14,11 @@ func TestInmemRepository_Find(t *testing.T) {
 	e := &myStruct{ID: 1, Name: "bob"}
 	r.Create(e)
 
-	e2 := &myStruct{ID: e.ID}
-	if err := r.Find(e2); err != nil {
+	if e2, err := r.Find(e.ID); err == nil {
+		t.Logf("%+v", e2)
+	} else {
 		t.Error(err)
 	}
-	t.Logf("%+v", e2)
 }
 
 func TestInmemRepository_FindAll(t *testing.T) {
@@ -35,8 +27,10 @@ func TestInmemRepository_FindAll(t *testing.T) {
 	r.Create(&myStruct{Name: "alice"})
 	r.Create(&myStruct{Name: "bob"})
 
-	list := []*myStruct{}
-	if err := r.FindAll(&list); err != nil {
+	var list []*myStruct
+	if l, err := r.FindAll(); err == nil {
+		list = l.([]*myStruct)
+	} else {
 		t.Error(err)
 	}
 	if len(list) != 2 {
@@ -97,9 +91,8 @@ func TestInmemRepository_Update(t *testing.T) {
 		t.Error(err)
 	}
 
-	e2 := &myStruct{ID: e1.ID}
-	r.Find(e2)
-	if e2.Name != newName {
+	e2, _ := r.Find(e1.ID)
+	if e2.(*myStruct).Name != newName {
 		t.Errorf("failed to update: %+v", e2)
 	}
 	t.Logf("%+v", e2)
@@ -115,8 +108,7 @@ func TestInmemRepository_Delete(t *testing.T) {
 		t.Error(err)
 	}
 
-	e2 := &myStruct{ID: e1.ID}
-	if err := r.Find(e2); err == nil {
+	if e2, err := r.Find(e1.ID); err == nil {
 		t.Error("failed to delete: %+v, %+v", e2, err)
 	}
 	t.Logf("%+v", r)
