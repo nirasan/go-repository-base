@@ -1,13 +1,8 @@
-package inmem
+package go_repository_base
 
 import (
 	"testing"
 )
-
-type myStruct struct {
-	ID   int64 `repository:"id"`
-	Name string
-}
 
 func TestInmemRepository_Find(t *testing.T) {
 	r := NewInmemRepository(&myStruct{})

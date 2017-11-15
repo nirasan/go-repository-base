@@ -1,4 +1,4 @@
-package datastore
+package go_repository_base
 
 import (
 	"context"
@@ -8,8 +8,6 @@ import (
 	"reflect"
 )
 
-const tagKey = "repository"
-
 type DatastoreRepository struct {
 	ctx          context.Context
 	kind         string
@@ -17,6 +15,7 @@ type DatastoreRepository struct {
 	typeName     string
 	createEntity func() interface{}
 	createList   func() interface{}
+	*IDManager
 }
 
 // Create Repository
@@ -33,48 +32,12 @@ func NewDatastoreRepository(ctx context.Context, createEntity func() interface{}
 		kind:         rt.Elem().String(),
 		createEntity: createEntity,
 		createList:   createList,
+		IDManager:    &IDManager{},
 	}
 	if _, err := r.GetIDFieldName(e); err != nil {
 		return nil, err
 	}
 	return r, nil
-}
-
-func (r *DatastoreRepository) GetIDFieldName(e interface{}) (string, error) {
-	if err := r.ValidateEntity(e); err != nil {
-		return "", err
-	}
-	rv := reflect.Indirect(reflect.ValueOf(e))
-	rt := rv.Type()
-	if rt.Kind() != reflect.Struct {
-		return "", errors.New(fmt.Sprintf("Entity must struct or pointer of struct: %+v", e))
-	}
-	for i := rt.NumField() - 1; i >= 0; i = i - 1 {
-		f := rt.Field(i)
-		if f.Type.Kind() == reflect.Int64 && f.Tag.Get(tagKey) == "id" {
-			return f.Name, nil
-		}
-	}
-	return "", errors.New("not found")
-}
-
-func (r *DatastoreRepository) SetID(e interface{}, id int64) error {
-	name, err := r.GetIDFieldName(e)
-	if err != nil {
-		return err
-	}
-	rv := reflect.Indirect(reflect.ValueOf(e))
-	rv.FieldByName(name).SetInt(id)
-	return nil
-}
-
-func (r *DatastoreRepository) GetID(e interface{}) (int64, error) {
-	name, err := r.GetIDFieldName(e)
-	if err != nil {
-		return 0, err
-	}
-	rv := reflect.Indirect(reflect.ValueOf(e))
-	return rv.FieldByName(name).Int(), nil
 }
 
 // Find one Entity

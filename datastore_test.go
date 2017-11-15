@@ -1,4 +1,4 @@
-package datastore
+package go_repository_base
 
 import (
 	"context"
@@ -12,14 +12,14 @@ type myStruct struct {
 	Name string
 }
 
-func createMyStructRepository(ctx context.Context) *DatastoreRepository {
-	r, _ := NewDatastoreRepository(ctx, func() interface{} { return &myStruct{} }, func() interface{} { return []*myStruct{} })
-	return r
-}
-
 type myStruct2 struct {
 	ID   int64
 	Name string
+}
+
+func createMyStructRepository(ctx context.Context) *DatastoreRepository {
+	r, _ := NewDatastoreRepository(ctx, func() interface{} { return &myStruct{} }, func() interface{} { return []*myStruct{} })
+	return r
 }
 
 func TestDatastoreRepository_SetID(t *testing.T) {

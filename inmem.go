@@ -1,4 +1,4 @@
-package inmem
+package go_repository_base
 
 import (
 	"errors"
@@ -6,59 +6,22 @@ import (
 	"reflect"
 )
 
-const tagKey = "repository"
-
 type InmemRepository struct {
 	data     map[int64]interface{}
 	id       int64
 	entity   interface{}
 	typeName string
+	*IDManager
 }
 
 func NewInmemRepository(e interface{}) *InmemRepository {
 	return &InmemRepository{
-		data:     make(map[int64]interface{}),
-		id:       1,
-		entity:   e,
-		typeName: reflect.TypeOf(e).String(),
+		data:      make(map[int64]interface{}),
+		id:        1,
+		entity:    e,
+		typeName:  reflect.TypeOf(e).String(),
+		IDManager: &IDManager{},
 	}
-}
-
-func (r *InmemRepository) GetIDFieldName(e interface{}) (string, error) {
-	if err := r.ValidateEntity(e); err != nil {
-		return "", err
-	}
-	rv := reflect.Indirect(reflect.ValueOf(e))
-	rt := rv.Type()
-	if rt.Kind() != reflect.Struct {
-		return "", errors.New(fmt.Sprintf("Entity must struct or pointer of struct: %+v", e))
-	}
-	for i := rt.NumField() - 1; i >= 0; i = i - 1 {
-		f := rt.Field(i)
-		if f.Type.Kind() == reflect.Int64 && f.Tag.Get(tagKey) == "id" {
-			return f.Name, nil
-		}
-	}
-	return "", errors.New("not found")
-}
-
-func (r *InmemRepository) SetID(e interface{}, id int64) error {
-	name, err := r.GetIDFieldName(e)
-	if err != nil {
-		return err
-	}
-	rv := reflect.Indirect(reflect.ValueOf(e))
-	rv.FieldByName(name).SetInt(id)
-	return nil
-}
-
-func (r *InmemRepository) GetID(e interface{}) (int64, error) {
-	name, err := r.GetIDFieldName(e)
-	if err != nil {
-		return 0, err
-	}
-	rv := reflect.Indirect(reflect.ValueOf(e))
-	return rv.FieldByName(name).Int(), nil
 }
 
 func (r *InmemRepository) Find(id int64) (interface{}, error) {
