@@ -1,10 +1,10 @@
 package datastore
 
 import (
+	"context"
 	"google.golang.org/appengine/aetest"
 	"google.golang.org/appengine/datastore"
 	"testing"
-	"context"
 )
 
 type myStruct struct {

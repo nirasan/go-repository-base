@@ -11,28 +11,28 @@ import (
 const tagKey = "repository"
 
 type DatastoreRepository struct {
-	ctx      context.Context
-	kind     string
-	entity   interface{}
-	typeName string
+	ctx          context.Context
+	kind         string
+	entity       interface{}
+	typeName     string
 	createEntity func() interface{}
-	createList func() interface{}
+	createList   func() interface{}
 }
 
 // Create Repository
-func NewDatastoreRepository(ctx context.Context, createEntity func()interface{}, createList func()interface{}) (*DatastoreRepository, error) {
+func NewDatastoreRepository(ctx context.Context, createEntity func() interface{}, createList func() interface{}) (*DatastoreRepository, error) {
 	e := createEntity()
 	rt := reflect.TypeOf(e)
 	if rt.Kind() != reflect.Ptr || rt.Elem().Kind() != reflect.Struct {
 		return nil, errors.New(fmt.Sprintf("Invalid entity type must be Ptr of Struct. actual: %s", rt.String()))
 	}
 	r := &DatastoreRepository{
-		ctx: ctx,
-		entity: e,
-		typeName: rt.String(),
-		kind: rt.Elem().String(),
+		ctx:          ctx,
+		entity:       e,
+		typeName:     rt.String(),
+		kind:         rt.Elem().String(),
 		createEntity: createEntity,
-		createList: createList,
+		createList:   createList,
 	}
 	if _, err := r.GetIDFieldName(e); err != nil {
 		return nil, err
@@ -137,7 +137,9 @@ func (r *DatastoreRepository) Update(e interface{}) error {
 		return err
 	}
 	id, err := r.GetID(e)
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 	_, err = datastore.Put(r.ctx, r.NewKey(id), e)
 	return err
 }
@@ -148,7 +150,9 @@ func (r *DatastoreRepository) Delete(e interface{}) error {
 		return err
 	}
 	id, err := r.GetID(e)
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 	return datastore.Delete(r.ctx, r.NewKey(id))
 }
 

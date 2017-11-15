@@ -61,7 +61,6 @@ func (r *InmemRepository) GetID(e interface{}) (int64, error) {
 	return rv.FieldByName(name).Int(), nil
 }
 
-
 func (r *InmemRepository) Find(id int64) (interface{}, error) {
 	e, ok := r.data[id]
 	if !ok {
