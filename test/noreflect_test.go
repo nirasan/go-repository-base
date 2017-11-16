@@ -14,11 +14,14 @@ func BenchmarkUserRepository_Find(b *testing.B) {
 	defer f()
 	r := NewUserRepository(ctx)
 
+	b.N = 1000
 	for i := 0; i < b.N; i++ {
 		e1 := &User{}
 		r.Create(e1)
 
 		e2, _ := r.Find(e1.ID)
+
+		r.FindAll()
 
 		r.Delete(e2)
 	}
@@ -36,11 +39,14 @@ func BenchmarkDatastoreRepository_Find(b *testing.B) {
 		b.Fatal(err)
 	}
 
+	b.N = 1000
 	for i := 0; i < b.N; i++ {
 		e1 := &User{}
 		r.Create(e1)
 
 		e2, _ := r.Find(e1.ID)
+
+		r.FindAll()
 
 		r.Delete(e2)
 	}

@@ -27,6 +27,22 @@ func (r *UserRepository) Find(id int64) (*User, error) {
 	return e, nil
 }
 
+func (r *UserRepository) FindAll() ([]*User, error) {
+	list := []*User{}
+
+	it := datastore.NewQuery(r.kind).Run(r.ctx)
+	for {
+		e := &User{}
+		_, err := it.Next(e)
+		if err != nil {
+			break
+		}
+		list = append(list, e)
+	}
+
+	return list, nil
+}
+
 func (r *UserRepository) Create(e *User) error {
 	key := datastore.NewIncompleteKey(r.ctx, r.kind, nil)
 	newKey, err := datastore.Put(r.ctx, key, e)
