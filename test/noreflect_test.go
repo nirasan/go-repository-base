@@ -4,9 +4,10 @@ import (
 	"github.com/nirasan/go-repository-base"
 	"google.golang.org/appengine/aetest"
 	"testing"
+	"context"
 )
 
-func BenchmarkUserRepository_Find(b *testing.B) {
+func Benchmark_Before(b *testing.B) {
 	ctx, f, err := aetest.NewContext()
 	if err != nil {
 		b.Fatal(err)
@@ -27,14 +28,26 @@ func BenchmarkUserRepository_Find(b *testing.B) {
 	}
 }
 
-func BenchmarkDatastoreRepository_Find(b *testing.B) {
+type UserDatastoreRepository struct {
+	*go_repository_base.DatastoreRepository
+}
+
+func NewUserDatastoreRepository(ctx context.Context) (*UserDatastoreRepository, error) {
+	r, err := go_repository_base.NewDatastoreRepository(ctx, func() interface{} { return &User{} }, func() interface{} { return []*User{} })
+	if err != nil {
+		return nil, err
+	}
+	return &UserDatastoreRepository{r}, nil
+}
+
+func Benchmark_After(b *testing.B) {
 	ctx, f, err := aetest.NewContext()
 	if err != nil {
 		b.Fatal(err)
 	}
 	defer f()
 
-	r, err := go_repository_base.NewDatastoreRepository(ctx, func() interface{} { return &User{} }, func() interface{} { return []*User{} })
+	r, err := NewUserDatastoreRepository(ctx)
 	if err != nil {
 		b.Fatal(err)
 	}
