@@ -7,24 +7,28 @@ import (
 )
 
 type InmemRepository struct {
-	data     map[int64]interface{}
+	data     map[interface{}]interface{}
 	id       int64
 	entity   interface{}
 	typeName string
 	*IDManager
 }
 
-func NewInmemRepository(e interface{}) *InmemRepository {
+func NewInmemRepository(e interface{}) (*InmemRepository, error) {
+	m, err := NewIDManager(e)
+	if err != nil {
+		return nil, err
+	}
 	return &InmemRepository{
-		data:      make(map[int64]interface{}),
+		data:      make(map[interface{}]interface{}),
 		id:        1,
 		entity:    e,
 		typeName:  reflect.TypeOf(e).String(),
-		IDManager: &IDManager{},
-	}
+		IDManager: m,
+	}, nil
 }
 
-func (r *InmemRepository) Find(id int64) (interface{}, error) {
+func (r *InmemRepository) Find(id interface{}) (interface{}, error) {
 	e, ok := r.data[id]
 	if !ok {
 		return nil, errors.New("not found")
@@ -46,11 +50,15 @@ func (r *InmemRepository) Create(e interface{}) error {
 		return err
 	}
 	r.id = r.id + 1
-	r.CreateWithID(e, r.id)
+	if r.isIntID {
+		r.CreateWithID(e, r.id)
+	} else {
+		r.CreateWithID(e, fmt.Sprintf("%d", r.id))
+	}
 	return nil
 }
 
-func (r *InmemRepository) CreateWithID(e interface{}, id int64) error {
+func (r *InmemRepository) CreateWithID(e interface{}, id interface{}) error {
 	if err := r.ValidateEntity(e); err != nil {
 		return err
 	}

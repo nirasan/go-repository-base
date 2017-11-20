@@ -5,7 +5,7 @@ import (
 )
 
 func TestInmemRepository_Find(t *testing.T) {
-	r := NewInmemRepository(&myStruct{})
+	r, _ := NewInmemRepository(&myStruct{})
 	e := &myStruct{ID: 1, Name: "bob"}
 	r.Create(e)
 
@@ -17,7 +17,7 @@ func TestInmemRepository_Find(t *testing.T) {
 }
 
 func TestInmemRepository_FindAll(t *testing.T) {
-	r := NewInmemRepository(&myStruct{})
+	r, _ := NewInmemRepository(&myStruct{})
 
 	r.Create(&myStruct{Name: "alice"})
 	r.Create(&myStruct{Name: "bob"})
@@ -37,7 +37,7 @@ func TestInmemRepository_FindAll(t *testing.T) {
 }
 
 func TestInmemRepository_CreateWithID(t *testing.T) {
-	r := NewInmemRepository(&myStruct{})
+	r, _ := NewInmemRepository(&myStruct{})
 
 	var id int64 = 100
 	e := &myStruct{Name: "bob"}
@@ -56,7 +56,7 @@ func TestInmemRepository_CreateWithID(t *testing.T) {
 }
 
 func TestInmemRepository_Create(t *testing.T) {
-	r := NewInmemRepository(&myStruct{})
+	r, _ := NewInmemRepository(&myStruct{})
 
 	e1 := &myStruct{Name: "alice"}
 	e2 := &myStruct{Name: "bob"}
@@ -75,7 +75,7 @@ func TestInmemRepository_Create(t *testing.T) {
 }
 
 func TestInmemRepository_Update(t *testing.T) {
-	r := NewInmemRepository(&myStruct{})
+	r, _ := NewInmemRepository(&myStruct{})
 
 	e1 := &myStruct{Name: "alice"}
 	r.Create(e1)
@@ -94,7 +94,7 @@ func TestInmemRepository_Update(t *testing.T) {
 }
 
 func TestInmemRepository_Delete(t *testing.T) {
-	r := NewInmemRepository(&myStruct{})
+	r, _ := NewInmemRepository(&myStruct{})
 
 	e1 := &myStruct{Name: "alice"}
 	r.Create(e1)

@@ -25,6 +25,10 @@ func NewDatastoreRepository(ctx context.Context, createEntity func() interface{}
 	if rt.Kind() != reflect.Ptr || rt.Elem().Kind() != reflect.Struct {
 		return nil, errors.New(fmt.Sprintf("Invalid entity type must be Ptr of Struct. actual: %s", rt.String()))
 	}
+	m, err := NewIDManager(e)
+	if err != nil {
+		return nil, err
+	}
 	r := &DatastoreRepository{
 		ctx:          ctx,
 		entity:       e,
@@ -32,18 +36,27 @@ func NewDatastoreRepository(ctx context.Context, createEntity func() interface{}
 		kind:         rt.Elem().String(),
 		createEntity: createEntity,
 		createList:   createList,
-		IDManager:    &IDManager{},
-	}
-	if _, err := r.GetIDFieldName(e); err != nil {
-		return nil, err
+		IDManager:    m,
 	}
 	return r, nil
 }
 
-// Find one Entity
-func (r *DatastoreRepository) Find(id int64) (interface{}, error) {
+func (r *DatastoreRepository) Find(id interface{}) (interface{}, error) {
+	var key *datastore.Key
+	switch v := id.(type) {
+	case int64:
+		if !r.isIntID {
+			return nil, errors.New("id must string")
+		}
+		key = datastore.NewKey(r.ctx, r.kind, "", v, nil)
+	case string:
+		if r.isIntID {
+			return nil, errors.New("id must int64")
+		}
+		key = datastore.NewKey(r.ctx, r.kind, v, 0, nil)
+	}
 	e := r.createEntity()
-	err := datastore.Get(r.ctx, r.NewKey(id), e)
+	err := datastore.Get(r.ctx, key, e)
 	return e, err
 }
 
@@ -79,18 +92,26 @@ func (r *DatastoreRepository) Create(e interface{}) error {
 	if err != nil {
 		return err
 	}
-	return r.CreateWithID(e, newKey.IntID())
+	if r.isIntID {
+		return r.CreateWithID(e, newKey.IntID())
+	} else {
+		return r.CreateWithID(e, newKey.StringID())
+	}
 }
 
 // Create with id
-func (r *DatastoreRepository) CreateWithID(e interface{}, id int64) error {
+func (r *DatastoreRepository) CreateWithID(e interface{}, id interface{}) error {
 	if err := r.ValidateEntity(e); err != nil {
 		return err
 	}
 	if err := r.SetID(e, id); err != nil {
 		return err
 	}
-	_, err := datastore.Put(r.ctx, r.NewKey(id), e)
+	key, err := r.NewKey(e)
+	if err != nil {
+		return err
+	}
+	_, err = datastore.Put(r.ctx, key, e)
 	return err
 }
 
@@ -99,11 +120,11 @@ func (r *DatastoreRepository) Update(e interface{}) error {
 	if err := r.ValidateEntity(e); err != nil {
 		return err
 	}
-	id, err := r.GetID(e)
+	key, err := r.NewKey(e)
 	if err != nil {
 		return err
 	}
-	_, err = datastore.Put(r.ctx, r.NewKey(id), e)
+	_, err = datastore.Put(r.ctx, key, e)
 	return err
 }
 
@@ -112,17 +133,26 @@ func (r *DatastoreRepository) Delete(e interface{}) error {
 	if err := r.ValidateEntity(e); err != nil {
 		return err
 	}
-	id, err := r.GetID(e)
+	key, err := r.NewKey(e)
 	if err != nil {
 		return err
 	}
-	return datastore.Delete(r.ctx, r.NewKey(id))
+	return datastore.Delete(r.ctx, key)
 }
 
 // New Datastore
-func (r *DatastoreRepository) NewKey(id int64) *datastore.Key {
-	return datastore.NewKey(r.ctx, r.kind, "", id, nil)
+func (r *DatastoreRepository) NewKey(e interface{}) (*datastore.Key, error) {
+	id, err := r.GetID(e)
+	if err != nil {
+		return nil, err
+	}
+	if r.isIntID {
+		return datastore.NewKey(r.ctx, r.kind, "", id.(int64), nil), nil
+	} else {
+		return datastore.NewKey(r.ctx, r.kind, id.(string), 0, nil), nil
+	}
 }
+
 
 // Validation entity type
 func (r *DatastoreRepository) ValidateEntity(e interface{}) error {

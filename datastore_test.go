@@ -22,39 +22,6 @@ func createMyStructRepository(ctx context.Context) *DatastoreRepository {
 	return r
 }
 
-func TestDatastoreRepository_SetID(t *testing.T) {
-	ctx, f, err := aetest.NewContext()
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer f()
-	r := createMyStructRepository(ctx)
-	e := &myStruct{}
-	if err := r.SetID(e, 100); err != nil {
-		t.Error(err)
-	}
-	if e.ID != 100 {
-		t.Error("invalid id: ", e.ID)
-	}
-}
-
-func TestDatastoreRepository_GetID(t *testing.T) {
-	ctx, f, err := aetest.NewContext()
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer f()
-	r := createMyStructRepository(ctx)
-	e := &myStruct{ID: 999}
-	id, err := r.GetID(e)
-	if err != nil {
-		t.Error(err)
-	}
-	if id != 999 {
-		t.Error("invalid id: ", id)
-	}
-}
-
 func TestDatastoreRepository_ValidateEntity(t *testing.T) {
 	ctx, f, err := aetest.NewContext()
 	if err != nil {

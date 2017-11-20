@@ -2,70 +2,89 @@ package go_repository_base
 
 import "testing"
 
-func TestIDManager_GetIDFieldName(t *testing.T) {
-	m := &IDManager{}
-
-	if _, err := m.GetIDFieldName(1); err == nil {
+func TestNewIDManager(t *testing.T) {
+	if _, err := NewIDManager(1); err == nil {
 		t.Error("invalid type")
 	}
 
-	if _, err := m.GetIDFieldName(struct{ ID int64 }{}); err == nil {
+	if _, err := NewIDManager(struct{ ID int64 }{}); err == nil {
 		t.Error("tag not found")
 	}
 
-	if _, err := m.GetIDFieldName(struct {
+	if _, err := NewIDManager(struct {
 		ID int64 `repository:"pk"`
 	}{}); err == nil {
 		t.Error("invalid tag string")
 	}
 
-	if _, err := m.GetIDFieldName(struct {
+	if _, err := NewIDManager(struct {
 		ID string `repository:"id"`
 	}{}); err == nil {
 		t.Error("invalid id type")
 	}
 
-	if _, err := m.GetIDFieldName(struct {
+	if _, err := NewIDManager(struct {
 		ID int64 `repository:"id"`
 	}{}); err == nil {
 		t.Error("entity must pointer of struct")
 	}
 
-	if id, err := m.GetIDFieldName(&struct {
+	s1 := struct {
 		ID int64 `repository:"id"`
-	}{}); err != nil || id != "ID" {
+	}{}
+	if m, err := NewIDManager(&s1); err != nil || m.idFieldName != "ID" || !m.isIntID {
+		t.Error("invalid result")
+	}
+
+	s2 := struct {
+		ID string `repository:"id"`
+	}{}
+	if m, err := NewIDManager(&s2); err != nil || m.idFieldName != "ID" || m.isIntID {
 		t.Error("invalid result")
 	}
 }
 
 func TestIDManager_SetID(t *testing.T) {
-	m := &IDManager{}
 	s := &struct {
 		ID int64 `repository:"id"`
 	}{}
-
-	err := m.SetID(s, 1000)
+	m, err := NewIDManager(s)
 	if err != nil {
 		t.Error(err)
 	}
 
-	if s.ID != 1000 {
+	var id int64 = 1000
+	err = m.SetID(s, id)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if s.ID != id {
+		t.Errorf("invalid result: %+v", s)
+	}
+
+	strID := "2000"
+	if err = m.SetID(s, strID); err == nil {
 		t.Errorf("invalid result: %+v", s)
 	}
 }
 
 func TestIDManager_GetID(t *testing.T) {
-	m := &IDManager{}
+	var id int64 = 100
 	s := &struct {
 		ID int64 `repository:"id"`
-	}{ID: 100}
-
-	id, err := m.GetID(s)
+	}{ID: id}
+	m, err := NewIDManager(s)
 	if err != nil {
 		t.Error(err)
 	}
 
-	if id != 100 {
+	id2, err := m.GetID(s)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if id2 != id {
 		t.Errorf("invalid result: %+v", s)
 	}
 }
