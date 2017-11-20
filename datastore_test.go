@@ -55,7 +55,7 @@ func TestDatastoreRepository_CreateWithID(t *testing.T) {
 	}
 
 	e2 := new(myStruct)
-	if err := datastore.Get(ctx, datastore.NewKey(ctx, r.kind, "", id, nil), e2); err != nil {
+	if err := datastore.Get(ctx, datastore.NewKey(ctx, r.Kind, "", id, nil), e2); err != nil {
 		t.Error(err)
 	}
 	if e2.ID != id {
@@ -77,7 +77,7 @@ func TestDatastoreRepository_Create(t *testing.T) {
 	}
 
 	e2 := new(myStruct)
-	if err := datastore.Get(ctx, datastore.NewKey(ctx, r.kind, "", e.ID, nil), e2); err != nil {
+	if err := datastore.Get(ctx, datastore.NewKey(ctx, r.Kind, "", e.ID, nil), e2); err != nil {
 		t.Error(err)
 	}
 	if e2.Name != e.Name {
@@ -141,7 +141,7 @@ func TestDatastoreRepository_FindByQuery(t *testing.T) {
 	r.Create(ee2)
 	r.Create(ee3)
 
-	ret, err := r.FindByQuery(datastore.NewQuery(r.kind))
+	ret, err := r.FindByQuery(datastore.NewQuery(r.Kind))
 	if err != nil {
 		t.Error(err)
 	}

@@ -44,15 +44,15 @@ func TestInmemRepository_CreateWithID(t *testing.T) {
 	if err := r.CreateWithID(e, id); err != nil {
 		t.Error(err)
 	}
-	if len(r.data) != 1 {
+	if len(r.Data) != 1 {
 		t.Error("failed to create with id")
 	}
 
-	if _, ok := r.data[id]; !ok {
+	if _, ok := r.Data[id]; !ok {
 		t.Error("not found")
 	}
 
-	t.Logf("%+v", r.data)
+	t.Logf("%+v", r.Data)
 }
 
 func TestInmemRepository_Create(t *testing.T) {
