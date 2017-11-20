@@ -9,9 +9,9 @@ import (
 const idManagerTag = "repository"
 
 type IDManager struct {
-	entityName string
+	entityName  string
 	idFieldName string
-	isIntID bool
+	isIntID     bool
 }
 
 func NewIDManager(e interface{}) (*IDManager, error) {

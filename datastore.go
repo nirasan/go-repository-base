@@ -153,7 +153,6 @@ func (r *DatastoreRepository) NewKey(e interface{}) (*datastore.Key, error) {
 	}
 }
 
-
 // Validation entity type
 func (r *DatastoreRepository) ValidateEntity(e interface{}) error {
 	rt := reflect.TypeOf(e)
